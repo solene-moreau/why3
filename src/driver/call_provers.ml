@@ -255,7 +255,7 @@ let analyse_result exit_result res_parser get_counterexmp printing_info out =
     match l with
     | [] ->
         Opt.get_def HighFailure saved_res, List.rev saved_models
-    (** FIXME (see https://gitlab.inria.fr/why3/why3/-/issues/648)
+    (* FIXME (see https://gitlab.inria.fr/why3/why3/-/issues/648)
         The following case is a specific treatment for cases when Answer HighFailure
         is appended at the end of result_list because signaled is true in the function
         parse_prover_run.
@@ -270,8 +270,10 @@ let analyse_result exit_result res_parser get_counterexmp printing_info out =
           print_prover_answer res1 print_prover_answer res2;
        begin
          match res1,res2 with
+         | StepLimitExceeded, Unknown "resourceout"
          | Unknown _, Unknown "resourceout" ->
             analyse saved_models saved_res (Answer StepLimitExceeded :: tl)
+         | Timeout, Unknown "timeout"
          | Unknown _, Unknown "timeout" ->
             analyse saved_models saved_res (Answer Timeout :: tl)
          | (Unknown _, Unknown "")| (_, Unknown "(not unknown!)") ->
@@ -280,8 +282,12 @@ let analyse_result exit_result res_parser get_counterexmp printing_info out =
             analyse saved_models saved_res tl1
          | Unknown s1, Unknown s2 ->
             analyse saved_models saved_res (Answer (Unknown (s1 ^ " + " ^ s2)) :: tl)
-         | _,_ ->
-            analyse saved_models saved_res tl1
+         | _,_ -> (
+            Loc.warning
+              "two consecutive answers returned by the prover, will ignore the first one.@.\
+              First answer: %a@.Second answer: %a@."
+              print_prover_answer res1 print_prover_answer res2;
+            analyse saved_models saved_res tl1)
        end
     | Answer res :: Model model_str :: tl ->
         if res = Valid then
@@ -364,6 +370,18 @@ let parse_prover_run res_parser signaled time outfile exitcode limit get_counter
       pr_models = models;
     }
   end
+
+let parse_prover_run res_parser signaled time outfile exitcode limit get_counterexmp printing_info =
+  if outfile = "" then
+    { pr_answer = Failure "interrupted";
+      pr_status = Unix.WEXITED 1;
+      pr_output = "";
+      pr_time = time;
+      pr_steps = 0;
+      pr_models = [] }
+  else
+    let out = read_and_delete_file outfile in
+    parse_prover_run res_parser signaled time out exitcode limit get_counterexmp printing_info
 
 let actualcommand ~config command limit file =
   let stime = string_of_int limit.limit_time in
