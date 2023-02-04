@@ -104,6 +104,9 @@ val t_and_l_concrete : concrete_syntax_term list -> concrete_syntax_term
 (** Counter-example model elements. Each element represents
     a counter-example for a single source-code element.*)
 type model_element = {
+  me_name             : string;
+  (** me_name is used in module Gnat_counterexamples
+      to clean and filter elements in the model *)
   me_kind             : model_element_kind;
     (** The kind of model element. *)
   me_value            : Term.term;

@@ -216,6 +216,7 @@ let rec t_and_l_concrete = function
   | f::fl -> Binop (And, f, (t_and_l_concrete fl))
 
 type model_element = {
+  me_name: string;
   me_kind: model_element_kind;
   me_value: term;
   me_concrete_value: concrete_syntax_term;
@@ -225,6 +226,10 @@ type model_element = {
 }
 
 let create_model_element ~value ~concrete_value ~oloc ~attrs ~lsymbol = {
+  me_name=
+    Ident.get_model_trace_string
+      ~name:(lsymbol.ls_name.id_string)
+      ~attrs:(attrs);
   me_kind= Other;
   me_value= value;
   me_concrete_value= concrete_value;
@@ -656,6 +661,7 @@ let json_model_element me =
     | Loop_previous_iteration ->"before_iteration"
     | Loop_current_iteration -> "current_iteration" in
   Record [
+      "name", String me.me_name;
       "location", json_loc me.me_location;
       "attrs", json_attrs me.me_attrs;
       "value",
@@ -991,6 +997,7 @@ let build_model_rec pm (elts: model_element list) : model_files =
     let attrs, me_value, me_concrete_value =
       !remove_field (attrs, me.me_value, me.me_concrete_value) in
     Some {
+      me_name= me.me_name;
       me_kind= Other; (* will be updated later on *)
       me_value;
       me_concrete_value;
