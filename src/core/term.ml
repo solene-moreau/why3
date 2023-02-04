@@ -1050,6 +1050,14 @@ let t_pred_app pr t = t_equ (t_func_app pr t) t_bool_true
 let t_func_app_l fn tl = List.fold_left t_func_app fn tl
 let t_pred_app_l pr tl = t_equ (t_func_app_l pr tl) t_bool_true
 
+let to_prop t =
+  match t.t_ty with
+  | Some _ ->
+    if t_equal t t_bool_true then t_true
+    else if t_equal t t_bool_false then t_false
+    else t_attr_copy t (t_equ t t_bool_true)
+  | None -> t
+
 (** Term library *)
 
 (* generic map over types, symbols and variables *)
@@ -1089,8 +1097,8 @@ let rec t_gen_map fnT fnL m t =
         let u = Mvs.find_def v v m in
         ty_equal_check (fnT v.vs_ty) u.vs_ty;
         t_var u
-    | Tconst _ ->
-        t
+    | Tconst c ->
+        t_const c (fnT (Opt.get t.t_ty))
     | Tapp (fs, tl) ->
         t_app (fnL fs) (List.map fn tl) (Opt.map fnT t.t_ty)
     | Tif (f, t1, t2) ->
@@ -1785,3 +1793,13 @@ module TermTF = struct
   let tr_fold fnT fnF = tr_fold (t_selecti fnT fnF)
   let tr_map_fold fnT fnF = tr_map_fold (t_selecti fnT fnF)
 end
+
+
+let term_size t =
+  let rec aux acc t =
+    let acc' = acc+1 in
+    assert (acc' > acc); (* to avoid integer overflow *)
+    t_fold_unsafe aux acc' t
+  in aux 0 t
+
+let term_branch_size (_,_,t) = term_size t

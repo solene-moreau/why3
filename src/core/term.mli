@@ -144,6 +144,12 @@ and term_quant
 
 and trigger = term list list
 
+val term_size : term -> int
+(** [term_size t] is the size, i.e. the number of [term_node] constructors occuring in [t] *)
+
+val term_branch_size : term_branch -> int
+(** [term_branch_size t] is the size of the term in the given term branch *)
+
 (** {2 Generic term equality} *)
 
 (**   flags enable comparison of the respective feature:
@@ -390,6 +396,8 @@ val t_pred_app : term -> term -> term  (* prop-typed application *)
 
 val t_func_app_l : term -> term list -> term  (* value-typed application *)
 val t_pred_app_l : term -> term list -> term  (* prop-typed application *)
+
+val to_prop : term -> term
 
 (** {2 Lambda-term manipulation} *)
 
