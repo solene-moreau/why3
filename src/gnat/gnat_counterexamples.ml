@@ -76,36 +76,11 @@ let in_spark (e: model_element) =
      gnat2why *)
   String.length name > 0 && (name.[0] = '.' || (name.[0] <= '9' && name.[0] >= '0'))
 
-(* Don't clean values that will be removed by [post_clean].
-   TODO Do all cleaning in a single pass (merging clean and post_clean). *)
-let clean = object (self)
-  inherit Model_parser.clean
-
-  method! record fs =
-    if only_first_field2 (List.map fst fs) then
-      (* Clean only the first field *)
-      match fs with
-      | (f, v) :: fs ->
-          Opt.bind (self#value v) @@ fun v ->
-          Some (Record ((f, v) :: fs))
-      | _ -> assert false
-    else
-      let for_field (f, v) =
-        if is_split_field f || is_rec_ext_field f then
-          Some (f, v)
-        else
-          Opt.bind (self#value v) @@ fun v ->
-          Some (f, v) in
-      match List.filter_map for_field fs with
-      | [] -> None
-      | fs -> Some (Record fs)
-end
-
 (** Clean values by
     a) replacing records according to [only_first_field2] and
     b) simplifying discriminant records. *)
 let post_clean = object (self)
-  inherit clean as super
+  inherit Model_parser.clean as super
 
   method! element me =
     match super#element me with
